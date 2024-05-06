@@ -11,7 +11,9 @@ from telegram.ext import (
     Updater,
     CommandHandler,
     CallbackContext,
-    CallbackQueryHandler
+    CallbackQueryHandler,
+    MessageHandler,
+    Filters
 )
 
 
@@ -493,6 +495,30 @@ def convert_to_int(value):
             return None
     return value
 
+
+def script(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text("Привет! Пожалуйста, введите скрипт для применения к базе данных:")
+    context.user_data['waiting_for_script'] = True
+
+
+def apply_script(update: Update, context: CallbackContext) -> None:
+    if 'waiting_for_script' in context.user_data and context.user_data['waiting_for_script']:
+        profile_list = registration_check(update)
+        if profile_list[0] == 'admin':
+            script = update.message.text
+            conn = sqlite3.connect('astro_db.db')
+            c = conn.cursor()
+            c.execute(script)
+            conn.commit()
+            conn.close()
+            update.message.reply_text(f"Скрипт применен к базе данных:\n{script}")
+        else:
+            update.message.reply_text(f"Скрипт не выполнен, Вы не админ.")
+        del context.user_data['waiting_for_script']
+    else:
+        update.message.reply_text("Для общения с ботом используйте только кнопки меню.")
+
+
 def main():
     load_dotenv()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -501,6 +527,8 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(commands))
+    dp.add_handler(CommandHandler("script", script))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, apply_script))
 
     updater.start_polling()
     updater.idle()
