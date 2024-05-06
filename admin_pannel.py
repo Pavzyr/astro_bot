@@ -14,8 +14,7 @@ def admin_pannel(query, context: CallbackContext, msg_ex=False):
     if msg_ex:
         query.edit_message_text('Меню администратора', reply_markup=reply_markup)
     else:
-        query.message.reply_text('Меню администратора', reply_markup=reply_markup)
-    
+        query.message.reply_text('Меню администратора', reply_markup=reply_markup) 
 
 
 def add_progn(query, context: CallbackContext, update):
