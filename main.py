@@ -172,6 +172,18 @@ def profile(query, context, update):
             f'👤 Ваш ID - {profile_list[3]} (пользователь) \n💰 Баланс - {profile_list[1]} ₽.\nОплатите подписку для актуального прогноза, или станьте премиум пользователем для индивидуального астропрогноза.',
             reply_markup=reply_markup
             )
+    elif profile_list[0] == 'admin':
+        keyboard = [
+            [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
+            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
+            [InlineKeyboardButton("🔎 Проверить оплату", callback_data='pay_check')],
+            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(
+            f'👤 Ваш ID - {profile_list[3]} (Администратор) \n💰 Баланс - {profile_list[1]} ₽.',
+            reply_markup=reply_markup
+            )
     else:
         keyboard = [
             [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
@@ -191,8 +203,8 @@ def register(query, context, update):
     c = conn.cursor()
     try:
         c.execute(
-            'INSERT INTO users (user_id, username, first_name, last_name, role, balance) VALUES (?, ?, ?, ?, "user", ?)',
-                  (user.id, user.username, user.first_name, user.last_name, '0'))
+            'INSERT INTO users (user_id, username, first_name, last_name, role, balance, expired) VALUES (?, ?, ?, ?, "user", ?, ?)',
+                  (user.id, user.username, user.first_name, user.last_name, '0', '0'))
         conn.commit()
         keyboard = [
             [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
