@@ -276,7 +276,7 @@ def buy(query: Update, context: CallbackContext, update):
 
 def backtest(query, context: CallbackContext, update):
     profile_list = registration_check(update)
-    if profile_list[0] == 'user':
+    if profile_list[0] == 'user' or 'admin':
         query.edit_message_text("Выберире дату:",
                                 reply_markup=create_calendar())
     else:
