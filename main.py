@@ -312,7 +312,7 @@ def backtest_after_date_recieve(query, context, update, command):
 
 def today(query: Update, context: CallbackContext, update):
     profile_list = registration_check(update)
-    if profile_list[0] == 'subscriber':
+    if profile_list[0] == 'admin':
         conn = sqlite3.connect('astro_db.db')
         c = conn.cursor()
         c.execute('SELECT text FROM data WHERE date=?;',
