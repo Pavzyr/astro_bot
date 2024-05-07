@@ -1,6 +1,8 @@
 import calendar
 import os
 import sqlite3
+import logging
+import requests
 
 from datetime import datetime
 from dotenv import load_dotenv
@@ -224,6 +226,7 @@ def register(query, context, update):
             )
     finally:
         conn.close()
+        logger.info(f"Пользователь {user.id} успешно зарегистрировался")
 
 
 def buy(query: Update, context: CallbackContext, update):
@@ -482,8 +485,8 @@ def delete_payment(command, query, label):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute(
-    'DELETE FROM payments WHERE payment_code=?;',
-    (label,)
+        'DELETE FROM payments WHERE payment_code=?;',
+        (label,)
     )
     conn.commit()
     conn.close()
@@ -493,7 +496,7 @@ def delete_payment(command, query, label):
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(
-        f'Данные по оплате удалены.',
+        'Данные по оплате удалены.',
         reply_markup=reply_markup
         )
 
@@ -525,10 +528,15 @@ def apply_script(update: Update, context: CallbackContext) -> None:
             conn.close()
             update.message.reply_text(f"Скрипт применен к базе данных:\n{script}")
         else:
-            update.message.reply_text(f"Скрипт не выполнен, Вы не админ.")
+            update.message.reply_text("Скрипт не выполнен, Вы не админ.")
         del context.user_data['waiting_for_script']
     else:
         update.message.reply_text("Для общения с ботом используйте только кнопки меню.")
+
+
+def error(update, context):
+    """Логирует ошибки, вызванные обновлениями."""
+    logger.error('Ошибка в обновлении "%s" причина "%s"', update, context.error)
 
 
 def main():
@@ -540,11 +548,23 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(commands))
     dp.add_handler(CommandHandler("script", script))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, apply_script))
+    dp.add_handler(MessageHandler(
+        Filters.text & ~Filters.command,
+        apply_script
+        )
+    )
+    dp.add_error_handler(error)
 
     updater.start_polling()
     updater.idle()
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        filename='bot.log',
+        filemode='a',  # 'a' - новые сообщения будут добавляться в файл
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO
+    )
+    logger = logging.getLogger(__name__)
     main()
