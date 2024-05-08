@@ -20,17 +20,33 @@ from telegram.ext import (
 
 
 def start(update: Update, context: CallbackContext, msg_ex=False):
-    keyboard = [
-        [InlineKeyboardButton("❓ INFO", callback_data='info')],
-        [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
-        [InlineKeyboardButton("🔎 Прогноз", callback_data='today')],
-        [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     if msg_ex:
-        update.edit_message_text('Меню бота', reply_markup=reply_markup)
+        profile_list = registration_check(update.from_user)
     else:
-        update.message.reply_text('Меню бота', reply_markup=reply_markup)
+        profile_list = registration_check(update.effective_user)
+
+    if profile_list[0] in ('user', 'admin'):
+        keyboard = [
+            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
+            [InlineKeyboardButton("🔎 Прогноз", callback_data='today')],
+            [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
+            [InlineKeyboardButton("❓ INFO", callback_data='info')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if msg_ex:
+            update.edit_message_text('Меню бота', reply_markup=reply_markup)
+        else:
+            update.message.reply_text('Меню бота', reply_markup=reply_markup)
+    else:
+        keyboard = [
+            [InlineKeyboardButton("❓ INFO", callback_data='info')],
+            [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if msg_ex:
+            update.edit_message_text('Привет! О функционале бота можно прочитать в INFO. Для продолжения работы необходима регистрация. Она проходит в один клик и не требует Ваших персональных данных.', reply_markup=reply_markup)
+        else:
+            update.message.reply_text('Привет! О функционале бота можно прочитать в INFO. Для продолжения работы необходима регистрация. Она проходит в один клик и не требует Ваших персональных данных.', reply_markup=reply_markup)
 
 
 def commands(update: Update, context: CallbackContext):
@@ -55,7 +71,7 @@ def commands(update: Update, context: CallbackContext):
         pay_check(query, context, update)
     elif command.startswith("pay_request-"):
         value = command.split('-')[1]
-        profile_list = registration_check(update)
+        profile_list = registration_check(update.effective_user)
         payment_code = f"bill||{datetime.now().strftime('%d.%m.%Y-%H:%M')}||{value}||{profile_list[2]}"
         payment_url = pay_url_generate(value, payment_code, profile_list[3])
         pay_button(query, context, update, payment_code, payment_url)
@@ -88,8 +104,7 @@ def menu(update: Update, context: CallbackContext, msg):
     update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
 
 
-def registration_check(update) -> str:
-    user = update.effective_user
+def registration_check(user) -> str:
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute('SELECT role, balance, expired, user_id FROM users WHERE user_id=?;', (user.id,))
@@ -161,7 +176,7 @@ def page_of_calendar(command, query):
 
 
 def profile(query, context, update):
-    profile_list = registration_check(update)
+    profile_list = registration_check(update.effective_user)
     if profile_list[0] == 'user':
         keyboard = [
             [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
@@ -218,6 +233,8 @@ def register(query, context, update):
             'Вы успешно зарегистрированы!',
             reply_markup=reply_markup
             )
+        logger.info(f"Пользователь {user.id} успешно зарегистрировался")
+        send_messages(context, user_ids, f"Пользователь {user.id} успешно зарегистрировался. (Сообщение только администраторам)")
     except sqlite3.IntegrityError:
         menu(
             query,
@@ -226,11 +243,10 @@ def register(query, context, update):
             )
     finally:
         conn.close()
-        logger.info(f"Пользователь {user.id} успешно зарегистрировался")
 
 
 def buy(query: Update, context: CallbackContext, update):
-    profile_list = registration_check(update)
+    profile_list = registration_check(update.effective_user)
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute(
@@ -275,8 +291,8 @@ def buy(query: Update, context: CallbackContext, update):
 
 
 def backtest(query, context: CallbackContext, update):
-    profile_list = registration_check(update)
-    if profile_list[0] == 'user' or 'admin':
+    profile_list = registration_check(update.effective_user)
+    if profile_list[0] in ('user', 'admin'):
         query.edit_message_text("Выберире дату:",
                                 reply_markup=create_calendar())
     else:
@@ -311,7 +327,7 @@ def backtest_after_date_recieve(query, context, update, command):
 
 
 def today(query: Update, context: CallbackContext, update):
-    profile_list = registration_check(update)
+    profile_list = registration_check(update.effective_user)
     if profile_list[0] == 'admin':
         conn = sqlite3.connect('astro_db.db')
         c = conn.cursor()
@@ -390,7 +406,7 @@ def pay_button(query, context, update, payment_code, payment_url):
 
 
 def pay_check(query, context, update):
-    profile_list = registration_check(update)
+    profile_list = registration_check(update.effective_user)
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute(
@@ -427,7 +443,7 @@ def pay_check(query, context, update):
 
 
 def pay_check_target(query, context, update, label, value, payment_url):
-    profile_list = registration_check(update)
+    profile_list = registration_check(update.effective_user)
     pay_list = label.split('||')
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
@@ -518,7 +534,7 @@ def script(update: Update, context: CallbackContext) -> None:
 
 def apply_script(update: Update, context: CallbackContext) -> None:
     if 'waiting_for_script' in context.user_data and context.user_data['waiting_for_script']:
-        profile_list = registration_check(update)
+        profile_list = registration_check(update.effective_user)
         if profile_list[0] == 'admin':
             script = update.message.text
             conn = sqlite3.connect('astro_db.db')
@@ -532,6 +548,15 @@ def apply_script(update: Update, context: CallbackContext) -> None:
         del context.user_data['waiting_for_script']
     else:
         update.message.reply_text("Для общения с ботом используйте только кнопки меню.")
+
+
+def send_messages(context, user_ids, text, reply_markup=None):
+    bot = context.bot
+    for user_id in user_ids:
+        try:
+            bot.send_message(chat_id=user_id, text=text)
+        except Exception as e:
+            logger.info(f"Ошибка при отправлении письма {user_id}: {str(e)}")
 
 
 def error(update, context):
@@ -566,5 +591,9 @@ if __name__ == '__main__':
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         level=logging.INFO
     )
+    file_handler = logging.FileHandler('bot.log', 'a', 'utf-8')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
     logger = logging.getLogger(__name__)
+    user_ids = [605381950, 2038870658]
     main()
