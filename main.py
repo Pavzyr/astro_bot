@@ -365,17 +365,17 @@ def backtest_info(query, update):
     msg = c.fetchone()
     msg = msg[0]
     conn.close()
-    keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     msg_points = msg.split('.')
     msg_send = ''
     for msg in msg_points:
         msg_send += msg
-        query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+        query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
+    keyboard = [
+            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
 
 
 def prognosis_info(query, update):
@@ -385,16 +385,17 @@ def prognosis_info(query, update):
     msg = c.fetchone()
     msg = msg[0]
     conn.close()
-    keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     msg_points = msg.split('.')
     msg_send = ''
     for msg in msg_points:
         msg_send += msg
-        query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+        query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
+    keyboard = [
+            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
 
 
 def pay_url_generate(value, payment_code, user_id):
