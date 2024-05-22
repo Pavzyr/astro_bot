@@ -372,7 +372,7 @@ def backtest_info(query, update):
         query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
     keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
+            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
@@ -392,7 +392,7 @@ def prognosis_info(query, update):
         query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
     keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
+            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
