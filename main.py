@@ -366,7 +366,7 @@ def backtest_info(query, update):
     msg = msg[0]
     conn.close()
     keyboard = [
-            [InlineKeyboardButton("Печатаю ...", callback_data=' ')],
+            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -375,8 +375,7 @@ def backtest_info(query, update):
     for msg in msg_points:
         msg_send += msg
         query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
-        time.sleep(0.11)
-    query.edit_message_text('Cerf ,kzlm', reply_markup=reply_markup, parse_mode='HTML')
+        time.sleep(3)
 
 
 def prognosis_info(query, update):
@@ -387,7 +386,7 @@ def prognosis_info(query, update):
     msg = msg[0]
     conn.close()
     keyboard = [
-            [InlineKeyboardButton("Печатаю ...", callback_data=' ')],
+            [InlineKeyboardButton("↩️ В меню", callback_data=' ')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     msg_points = msg.split('.')
@@ -396,12 +395,6 @@ def prognosis_info(query, update):
         msg_send += msg
         query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
         time.sleep(3)
-    keyboard = [
-            [InlineKeyboardButton("я ебланг ...", callback_data=' ')],
-            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(msg_send + ' Удачи!', reply_markup=reply_markup, parse_mode='HTML')
 
 
 def pay_url_generate(value, payment_code, user_id):
