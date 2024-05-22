@@ -2,13 +2,14 @@ import calendar
 import os
 import sqlite3
 import logging
+import time
 import requests
 
 from datetime import datetime
 from dotenv import load_dotenv
 from yoomoney import Client, Quickpay
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -40,13 +41,10 @@ def start(update: Update, context: CallbackContext, msg_ex=False):
     else:
         keyboard = [
             [InlineKeyboardButton("❓ INFO", callback_data='info')],
-            [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        if msg_ex:
-            update.edit_message_text('Привет! О функционале бота можно прочитать в INFO. Для продолжения работы необходима регистрация. Она проходит в один клик и не требует Ваших персональных данных.', reply_markup=reply_markup)
-        else:
-            update.message.reply_text('Привет! О функционале бота можно прочитать в INFO. Для продолжения работы необходима регистрация. Она проходит в один клик и не требует Ваших персональных данных.', reply_markup=reply_markup)
+        register(context, update)
+        update.message.reply_text('Привет! Предлагаю ознакомиться c функционалом бота.', reply_markup=reply_markup)
 
 
 def commands(update: Update, context: CallbackContext):
@@ -55,6 +53,10 @@ def commands(update: Update, context: CallbackContext):
     command = query.data
     if command == "register":
         register(query, context, update)
+    elif command == "backtest_info":
+        backtest_info(query, update)
+    elif command == "prognosis_info":
+        prognosis_info(query, update)
     elif command == "backtest":
         backtest(query, context, update)
     elif command == "buy":
@@ -214,7 +216,7 @@ def profile(query, context, update):
             )
 
 
-def register(query, context, update):
+def register(context, update):
     user = update.effective_user
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
@@ -223,24 +225,10 @@ def register(query, context, update):
             'INSERT INTO users (user_id, username, first_name, last_name, role, balance, expired) VALUES (?, ?, ?, ?, "user", ?, ?)',
                   (user.id, user.username, user.first_name, user.last_name, '0', '0'))
         conn.commit()
-        keyboard = [
-            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
-            [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
-            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_text(
-            'Вы успешно зарегистрированы!',
-            reply_markup=reply_markup
-            )
         logger.info(f"Пользователь {user.id} успешно зарегистрировался")
-        send_messages(context, user_ids, f"Пользователь {user.id} успешно зарегистрировался. (Сообщение только администраторам)")
+        send_messages(context, user_ids, f"Пользователь {user.id} {user.username} {user.first_name} {user.last_name} успешно зарегистрировался. (Сообщение только администраторам)")
     except sqlite3.IntegrityError:
-        menu(
-            query,
-            context,
-            f'{user.first_name} {user.last_name} Вы уже зарегистрированы.'
-            )
+        pass
     finally:
         conn.close()
 
@@ -361,14 +349,59 @@ def info(query: Update, context: CallbackContext):
     conn.close()
     keyboard = [
             [
-                InlineKeyboardButton("Один", callback_data='1'),
-                InlineKeyboardButton("Два", callback_data='1'), 
-                InlineKeyboardButton("Три", callback_data='1')
+                InlineKeyboardButton("Бектест", callback_data='backtest_info'),
+                InlineKeyboardButton("Актуальный прогноз", callback_data='prognosis_info')
             ],
-            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
+
+
+def backtest_info(query, update):
+    conn = sqlite3.connect('astro_db.db')
+    c = conn.cursor()
+    c.execute('SELECT "page_text" FROM "info" WHERE page_name="backtest";')
+    msg = c.fetchone()
+    msg = msg[0]
+    conn.close()
+    keyboard = [
+            [InlineKeyboardButton("Печатаю ...", callback_data=' ')],
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    msg_points = msg.split('.')
+    msg_send = ''
+    for msg in msg_points:
+        msg_send += msg
+        query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+        time.sleep(0.11)
+    query.edit_message_text('Cerf ,kzlm', reply_markup=reply_markup, parse_mode='HTML')
+
+
+def prognosis_info(query, update):
+    conn = sqlite3.connect('astro_db.db')
+    c = conn.cursor()
+    c.execute('SELECT "page_text" FROM "info" WHERE page_name="prognosis";')
+    msg = c.fetchone()
+    msg = msg[0]
+    conn.close()
+    keyboard = [
+            [InlineKeyboardButton("Печатаю ...", callback_data=' ')],
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    msg_points = msg.split('.')
+    msg_send = ''
+    for msg in msg_points:
+        msg_send += msg
+        query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+        time.sleep(3)
+    keyboard = [
+            [InlineKeyboardButton("я ебланг ...", callback_data=' ')],
+            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
+        ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(msg_send + ' Удачи!', reply_markup=reply_markup, parse_mode='HTML')
 
 
 def pay_url_generate(value, payment_code, user_id):
@@ -564,6 +597,12 @@ def error(update, context):
     logger.error('Ошибка в обновлении "%s" причина "%s"', update, context.error)
 
 
+async def post_init(updater):
+    await updater.bot.set_my_commands([
+        BotCommand("/start", "Вызов меню"),
+    ])
+
+
 def main():
     load_dotenv()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -582,6 +621,7 @@ def main():
 
     updater.start_polling()
     updater.idle()
+    updater.loop.create_task(post_init(updater))
 
 
 if __name__ == '__main__':
