@@ -564,12 +564,15 @@ def apply_script(update: Update, context: CallbackContext) -> None:
         profile_list = registration_check(update.effective_user)
         if profile_list[0] == 'admin':
             script = update.message.text
-            conn = sqlite3.connect('astro_db.db')
-            c = conn.cursor()
-            c.execute(script)
-            conn.commit()
-            conn.close()
-            update.message.reply_text(f"Скрипт применен к базе данных:\n{script}")
+            if script == 'Обновление':
+                update.message.reply_text(f"Загрузил новое обновление - доступно инфо и автоматическая регистрация пользователей. Данное сообщение видят только администраторы.")
+            else:
+                conn = sqlite3.connect('astro_db.db')
+                c = conn.cursor()
+                c.execute(script)
+                conn.commit()
+                conn.close()
+                update.message.reply_text(f"Скрипт применен к базе данных:\n{script}")
         else:
             update.message.reply_text("Скрипт не выполнен, Вы не админ.")
         del context.user_data['waiting_for_script']
