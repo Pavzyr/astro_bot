@@ -51,32 +51,32 @@ def commands(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     command = query.data
-    if command == "register":
-        register(query, context, update)
-    elif command == "backtest_info":
-        backtest_info(query, update)
+    if command == "backtest_info":
+        backtest_info(query)
     elif command == "prognosis_info":
-        prognosis_info(query, update)
+        prognosis_info(query)
+    elif command == "individual_info":
+        individual_info(query)
     elif command == "backtest":
-        backtest(query, context, update)
+        query.edit_message_text("Выберире дату:", reply_markup=create_calendar())
     elif command == "buy":
-        buy(query, context, update)
+        buy(query, update)
     elif command == "today":
-        today(query, context, update)
+        today(query, update)
     elif command == "menu":
         start(query, context, True)
     elif command == "profile":
-        profile(query, context, update)
+        profile(query, update)
     elif command == "info":
-        info(query, context)
+        info(query)
     elif command == "pay_check":
-        pay_check(query, context, update)
+        pay_check(query, update)
     elif command.startswith("pay_request-"):
         value = command.split('-')[1]
         profile_list = registration_check(update.effective_user)
         payment_code = f"bill||{datetime.now().strftime('%d.%m.%Y-%H:%M')}||{value}||{profile_list[2]}"
         payment_url = pay_url_generate(value, payment_code, profile_list[3])
-        pay_button(query, context, update, payment_code, payment_url)
+        pay_button(query, payment_code, payment_url)
     elif command.startswith("bill"):
         conn = sqlite3.connect('astro_db.db')
         c = conn.cursor()
@@ -88,17 +88,17 @@ def commands(update: Update, context: CallbackContext):
         value = payment_url[1]
         payment_url = payment_url[0]
         conn.close()
-        pay_check_target(query, context, update, command, value, payment_url)
+        pay_check_target(query, update, command, value, payment_url)
     elif command.startswith("calendar-day-"):
-        backtest_after_date_recieve(query, context, update, command)
+        backtest_after_date_recieve(query, update, command)
     elif command.startswith("change-month-"):
         page_of_calendar(command, query)
     elif command.startswith("delete_payment-"):
         label = command.replace('delete_payment-', '')
-        delete_payment(command, query, label)
+        delete_payment(query, label)
 
 
-def menu(update: Update, context: CallbackContext, msg):
+def menu(update, msg):
     keyboard = [
         [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
     ]
@@ -106,7 +106,7 @@ def menu(update: Update, context: CallbackContext, msg):
     update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
 
 
-def registration_check(user) -> str:
+def registration_check(user):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute('SELECT role, balance, expired, user_id FROM users WHERE user_id=?;', (user.id,))
@@ -177,7 +177,7 @@ def page_of_calendar(command, query):
         )
 
 
-def profile(query, context, update):
+def profile(query, update):
     profile_list = registration_check(update.effective_user)
     if profile_list[0] == 'user':
         keyboard = [
@@ -205,13 +205,11 @@ def profile(query, context, update):
             )
     else:
         keyboard = [
-            [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            'Для просмотра профиля необходима регистрация. '
-            'Она полностью бесплатна и происходит всего за один клик!',
+            'Возникла ошибка с вашим профилем, обратитесь к администратору!',
             reply_markup=reply_markup
             )
 
@@ -233,7 +231,7 @@ def register(context, update):
         conn.close()
 
 
-def buy(query: Update, context: CallbackContext, update):
+def buy(query, update):
     profile_list = registration_check(update.effective_user)
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
@@ -242,65 +240,39 @@ def buy(query: Update, context: CallbackContext, update):
         (profile_list[3],)
     )
     rows = c.fetchall()
-
-    if profile_list[0] == 'unauthorized':
+    if len(rows) < 3:
         keyboard = [
-            [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
+            [InlineKeyboardButton("Пополнить на 10 ₽", callback_data='pay_request-10')],
+            [InlineKeyboardButton("Пополнить на 750 ₽", callback_data='pay_request-750')],
+            [InlineKeyboardButton("Пополнить на 4500 ₽", callback_data='pay_request-4500')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            f'Вы еще не зарегистрированы! Это займет всего один клик - и можно пополнять счет!',
+            f'Выберите сумму для пополнения:',
             reply_markup=reply_markup
             )
     else:
-        if len(rows) < 3:
-            keyboard = [
-                [InlineKeyboardButton("Пополнить на 10 ₽", callback_data='pay_request-10')],
-                [InlineKeyboardButton("Пополнить на 750 ₽", callback_data='pay_request-750')],
-                [InlineKeyboardButton("Пополнить на 4500 ₽", callback_data='pay_request-4500')],
-                [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            query.edit_message_text(
-                f'Выберите сумму для пополнения:',
-                reply_markup=reply_markup
-                )
-        else:
-            keyboard = [
-                [InlineKeyboardButton("🔎 Проверить оплаты", callback_data='pay_check')],
-                [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            query.edit_message_text(
-                f'У Вас слишком много активных ссылок на оплаты! Проверьте их и отмените ненужные:',
-                reply_markup=reply_markup
-                )
-
-
-def backtest(query, context: CallbackContext, update):
-    profile_list = registration_check(update.effective_user)
-    if profile_list[0] in ('user', 'admin'):
-        query.edit_message_text("Выберире дату:",
-                                reply_markup=create_calendar())
-    else:
         keyboard = [
-            [InlineKeyboardButton("🪪 Регистрация", callback_data='register')],
+            [InlineKeyboardButton("🔎 Проверить оплаты", callback_data='pay_check')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            'Для бектеста необходима регистрация. '
-            'Она полностью бесплатна и происходит всего за один клик!',
+            f'У Вас слишком много активных ссылок на оплаты! Проверьте их и отмените ненужные:',
             reply_markup=reply_markup
             )
 
 
-def backtest_after_date_recieve(query, context, update, command):
+def backtest_after_date_recieve(query, update, command):
     da, _, year, month, day = command.split('-')[:5]
     date = datetime(int(year), int(month), int(day))
     if date.strftime('%d.%m.%Y') == datetime.now().strftime('%d.%m.%Y'):
-        today(query, context, update)
+        today(query, update)
+    elif date.strftime('%d.%m.%Y') > datetime.now().strftime('%d.%m.%Y'):
+        msg = 'Функция бектеста позволяет посмотреть только историю. '
+        'Прогнозы доступны для индивидуальных подписчиков.'
+        menu(query, msg)
     else:
         conn = sqlite3.connect('astro_db.db')
         c = conn.cursor()
@@ -311,12 +283,12 @@ def backtest_after_date_recieve(query, context, update, command):
         else:
             msg = 'На эту дату у нас нет прогноза.'
         conn.close()
-        menu(query, context, msg)
+        menu(query, msg)
 
 
-def today(query: Update, context: CallbackContext, update):
+def today(query, update):
     profile_list = registration_check(update.effective_user)
-    if profile_list[0] == 'admin':
+    if profile_list[0] == 'subscriber':
         conn = sqlite3.connect('astro_db.db')
         c = conn.cursor()
         c.execute('SELECT text FROM data WHERE date=?;',
@@ -327,7 +299,7 @@ def today(query: Update, context: CallbackContext, update):
         else:
             msg = 'На этот день прогноз еще не добавлен'
         conn.close()
-        menu(query, context, msg)
+        menu(query, msg)
     else:
         keyboard = [
             [InlineKeyboardButton("💳 Перейти к оплате", callback_data='buy')],
@@ -340,7 +312,7 @@ def today(query: Update, context: CallbackContext, update):
             )
 
 
-def info(query: Update, context: CallbackContext):
+def info(query):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="info";')
@@ -352,13 +324,14 @@ def info(query: Update, context: CallbackContext):
                 InlineKeyboardButton("Бектест", callback_data='backtest_info'),
                 InlineKeyboardButton("Актуальный прогноз", callback_data='prognosis_info')
             ],
+            [InlineKeyboardButton("Индивидуальный прогноз", callback_data='individual_info')],
             [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
 
 
-def backtest_info(query, update):
+def backtest_info(query):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="backtest";')
@@ -371,14 +344,10 @@ def backtest_info(query, update):
         msg_send += msg
         query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
-    keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+    menu(query, msg_send)
 
 
-def prognosis_info(query, update):
+def prognosis_info(query):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="prognosis";')
@@ -391,11 +360,23 @@ def prognosis_info(query, update):
         msg_send += msg
         query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(3)
-    keyboard = [
-            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(msg_send, reply_markup=reply_markup, parse_mode='HTML')
+    menu(query, msg_send)
+
+
+def individual_info(query):
+    conn = sqlite3.connect('astro_db.db')
+    c = conn.cursor()
+    c.execute('SELECT "page_text" FROM "info" WHERE page_name="individual";')
+    msg = c.fetchone()
+    msg = msg[0]
+    conn.close()
+    msg_points = msg.split(' ')
+    msg_send = ''
+    for msg in msg_points:
+        msg_send += msg + ' '
+        query.edit_message_text(msg_send, parse_mode='HTML')
+        time.sleep(0.1)
+    menu(query, msg_send)
 
 
 def pay_url_generate(value, payment_code, user_id):
@@ -418,7 +399,7 @@ def pay_url_generate(value, payment_code, user_id):
     return quickpay.redirected_url
 
 
-def pay_button(query, context, update, payment_code, payment_url):
+def pay_button(query, payment_code, payment_url):
     pay_list = payment_code.split('||')
     keyboard = [
             [InlineKeyboardButton("💸 Перейти на страницу оплаты", url=payment_url)],
@@ -432,7 +413,7 @@ def pay_button(query, context, update, payment_code, payment_url):
         )
 
 
-def pay_check(query, context, update):
+def pay_check(query, update):
     profile_list = registration_check(update.effective_user)
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
@@ -469,7 +450,7 @@ def pay_check(query, context, update):
             )
 
 
-def pay_check_target(query, context, update, label, value, payment_url):
+def pay_check_target(query, update, label, value, payment_url):
     profile_list = registration_check(update.effective_user)
     pay_list = label.split('||')
     conn = sqlite3.connect('astro_db.db')
@@ -524,7 +505,7 @@ def pay_check_target(query, context, update, label, value, payment_url):
     conn.close()
 
 
-def delete_payment(command, query, label):
+def delete_payment(query, label):
     conn = sqlite3.connect('astro_db.db')
     c = conn.cursor()
     c.execute(
@@ -554,18 +535,18 @@ def convert_to_int(value):
     return value
 
 
-def script(update: Update, context: CallbackContext) -> None:
+def script(update, context):
     update.message.reply_text("Привет! Пожалуйста, введите скрипт для применения к базе данных:")
     context.user_data['waiting_for_script'] = True
 
 
-def apply_script(update: Update, context: CallbackContext) -> None:
+def apply_script(update, context):
     if 'waiting_for_script' in context.user_data and context.user_data['waiting_for_script']:
         profile_list = registration_check(update.effective_user)
         if profile_list[0] == 'admin':
             script = update.message.text
             if script == 'Обновление':
-                update.message.reply_text(f"Загрузил новое обновление - доступно инфо и автоматическая регистрация пользователей. Данное сообщение видят только администраторы.")
+                update.message.reply_text(f"Загрузил новое обновление - изменено инфо, исправлены переменные контекста, тест подписки внутри ЛК для админа")
             else:
                 conn = sqlite3.connect('astro_db.db')
                 c = conn.cursor()
@@ -580,7 +561,7 @@ def apply_script(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Для общения с ботом используйте только кнопки меню.")
 
 
-def send_messages(context, user_ids, text, reply_markup=None):
+def send_messages(context, user_ids, text):
     bot = context.bot
     for user_id in user_ids:
         try:
@@ -590,8 +571,8 @@ def send_messages(context, user_ids, text, reply_markup=None):
 
 
 def error(update, context):
-    """Логирует ошибки, вызванные обновлениями."""
-    logger.error('Ошибка в обновлении "%s" причина "%s"', update, context.error)
+    logger.error(f'Ошибка! - {context.error}. Qerry для прочтения - {update}')
+    print(f'Ошибка! - {context.error}. Qerry для прочтения - {update}')
 
 
 async def post_init(updater):
