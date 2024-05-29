@@ -78,7 +78,7 @@ def commands(update: Update, context: CallbackContext):
         payment_url = pay_url_generate(value, payment_code, profile_list[3])
         pay_button(query, payment_code, payment_url)
     elif command.startswith("bill"):
-        conn = sqlite3.connect('astro_db.db')
+        conn = sqlite3.connect('admin_django/astro_db.db')
         c = conn.cursor()
         c.execute(
             'SELECT href, value FROM payments WHERE payment_code=?;',
@@ -107,7 +107,7 @@ def menu(update, msg):
 
 
 def registration_check(user):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute('SELECT role, balance, expired, user_id FROM users WHERE user_id=?;', (user.id,))
     role = c.fetchone()
@@ -216,7 +216,7 @@ def profile(query, update):
 
 def register(context, update):
     user = update.effective_user
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     try:
         c.execute(
@@ -233,7 +233,7 @@ def register(context, update):
 
 def buy(query, update):
     profile_list = registration_check(update.effective_user)
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute(
         'SELECT payment_code, value FROM payments WHERE user_id=? AND payment_status="0";',
@@ -274,7 +274,7 @@ def backtest_after_date_recieve(query, update, command):
         'Прогнозы доступны для индивидуальных подписчиков.'
         menu(query, msg)
     else:
-        conn = sqlite3.connect('astro_db.db')
+        conn = sqlite3.connect('admin_django/astro_db.db')
         c = conn.cursor()
         c.execute('SELECT text FROM data WHERE date=?;', (date.strftime('%d.%m.%Y'),))
         msg = c.fetchone()
@@ -289,7 +289,7 @@ def backtest_after_date_recieve(query, update, command):
 def today(query, update):
     profile_list = registration_check(update.effective_user)
     if profile_list[0] == 'subscriber':
-        conn = sqlite3.connect('astro_db.db')
+        conn = sqlite3.connect('admin_django/astro_db.db')
         c = conn.cursor()
         c.execute('SELECT text FROM data WHERE date=?;',
                   (datetime.now().strftime('%d.%m.%Y'),))
@@ -313,7 +313,7 @@ def today(query, update):
 
 
 def info(query):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="info";')
     msg = c.fetchone()
@@ -332,7 +332,7 @@ def info(query):
 
 
 def backtest_info(query):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="backtest";')
     msg = c.fetchone()
@@ -348,7 +348,7 @@ def backtest_info(query):
 
 
 def prognosis_info(query):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="prognosis";')
     msg = c.fetchone()
@@ -364,7 +364,7 @@ def prognosis_info(query):
 
 
 def individual_info(query):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute('SELECT "page_text" FROM "info" WHERE page_name="individual";')
     msg = c.fetchone()
@@ -389,7 +389,7 @@ def pay_url_generate(value, payment_code, user_id):
             label=payment_code,
             successURL="https://web.telegram.org/k/#@Astropredikt_bot"
             )
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute(
         'INSERT INTO payments (user_id, payment_code, payment_status, value, href) VALUES (?, ?, ?, ?, ?)',
@@ -415,7 +415,7 @@ def pay_button(query, payment_code, payment_url):
 
 def pay_check(query, update):
     profile_list = registration_check(update.effective_user)
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute(
         'SELECT payment_code, value, href FROM payments WHERE user_id=? AND payment_status="0";',
@@ -453,7 +453,7 @@ def pay_check(query, update):
 def pay_check_target(query, update, label, value, payment_url):
     profile_list = registration_check(update.effective_user)
     pay_list = label.split('||')
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     UMONEY_TOKEN = os.getenv("UMONEY_TOKEN")
     client = Client(UMONEY_TOKEN)
@@ -506,7 +506,7 @@ def pay_check_target(query, update, label, value, payment_url):
 
 
 def delete_payment(query, label):
-    conn = sqlite3.connect('astro_db.db')
+    conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
     c.execute(
         'DELETE FROM payments WHERE payment_code=?;',
@@ -548,7 +548,7 @@ def apply_script(update, context):
             if script == 'Обновление':
                 update.message.reply_text(f"Загрузил новое обновление - изменено инфо, исправлены переменные контекста, тест подписки внутри ЛК для админа")
             else:
-                conn = sqlite3.connect('astro_db.db')
+                conn = sqlite3.connect('admin_django/astro_db.db')
                 c = conn.cursor()
                 c.execute(script)
                 conn.commit()
