@@ -28,4 +28,4 @@ class DataAdmin(admin.ModelAdmin):
 class DataAdmin(admin.ModelAdmin):
     list_display = ('user_id', 'username', 'first_name', 'last_name', 'role', 'balance', 'expired')
     fields = ('user_id', 'username', 'first_name', 'last_name', 'role', 'balance', 'expired')
-    list_editable = ('username', 'first_name', 'last_name', 'role', 'balance', 'expired')
+    list_editable = ('role', 'balance', 'expired')
