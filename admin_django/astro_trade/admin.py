@@ -21,8 +21,11 @@ class DataAdmin(admin.ModelAdmin):
 @admin.register(Payments)
 class DataAdmin(admin.ModelAdmin):
     list_display = ('user_id', 'payment_code', 'payment_status', 'value', 'href')
+    fields = ('user_id', 'payment_code', 'payment_status', 'value', 'href')
 
 
 @admin.register(Users)
 class DataAdmin(admin.ModelAdmin):
     list_display = ('user_id', 'username', 'first_name', 'last_name', 'role', 'balance', 'expired')
+    fields = ('user_id', 'username', 'first_name', 'last_name', 'role', 'balance', 'expired')
+    list_editable = ('username', 'first_name', 'last_name', 'role', 'balance', 'expired')
