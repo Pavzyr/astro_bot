@@ -502,7 +502,7 @@ def pay_check_target(query, context, update, label, value, payment_url):
                 'SELECT balance FROM users WHERE user_id=?;',
                 (profile_list[3],)
             )
-            value = value / 25
+            value = convert_to_int(value) / 25
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
             value = old_value + timedelta(days=value)
