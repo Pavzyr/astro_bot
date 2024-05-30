@@ -5,18 +5,16 @@ import logging
 import time
 import requests
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from yoomoney import Client, Quickpay
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Updater,
     CommandHandler,
     CallbackContext,
-    CallbackQueryHandler,
-    MessageHandler,
-    Filters
+    CallbackQueryHandler
 )
 
 
@@ -28,10 +26,11 @@ def start(update: Update, context: CallbackContext, msg_ex=False):
 
     if profile_list[0] in ('user', 'admin'):
         keyboard = [
-            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
-            [InlineKeyboardButton("🔎 Прогноз", callback_data='today')],
-            [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
-            [InlineKeyboardButton("❓ INFO", callback_data='info')],
+            [InlineKeyboardButton("🆓 Бектест (в прошлое)", callback_data='backtest')],
+            [InlineKeyboardButton("1️⃣ Прогноз на сегодня", callback_data='today')],
+            [InlineKeyboardButton("📅 Прогноз на завтра", callback_data='next_day')],
+            [InlineKeyboardButton("🆔 Ваш Профиль", callback_data='profile')],
+            [InlineKeyboardButton("❓ Информация", callback_data='info')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         if msg_ex:
@@ -63,6 +62,8 @@ def commands(update: Update, context: CallbackContext):
         buy(query, update)
     elif command == "today":
         today(query, update)
+    elif command == "next_day":
+        next_day(query, update)
     elif command == "menu":
         start(query, context, True)
     elif command == "profile":
@@ -101,6 +102,15 @@ def commands(update: Update, context: CallbackContext):
 def menu(update, msg):
     keyboard = [
         [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
+
+
+def info_button(update, msg):
+    keyboard = [
+        [InlineKeyboardButton("↩️ Назад в инфо", callback_data='info')],
+        [InlineKeyboardButton("Ⓜ️ В главное меню", callback_data='menu')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
@@ -188,7 +198,7 @@ def profile(query, update):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            f'👤 Ваш ID - {profile_list[3]} (пользователь) \n💰 Баланс - {profile_list[1]} ₽.\nОплатите подписку для актуального прогноза, или станьте премиум пользователем для индивидуального астропрогноза.',
+            f'👤 Ваш ID - {profile_list[3]} (пользователь) \n💰 Подписка до - {profile_list[1]}.',
             reply_markup=reply_markup
             )
     elif profile_list[0] == 'admin':
@@ -200,7 +210,7 @@ def profile(query, update):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            f'👤 Ваш ID - {profile_list[3]} (Администратор) \n💰 Баланс - {profile_list[1]} ₽.',
+            f'👤 Ваш ID - {profile_list[3]} (Администратор) \n💰 Подписка до - {profile_list[1]}.',
             reply_markup=reply_markup
             )
     else:
@@ -221,10 +231,10 @@ def register(context, update):
     try:
         c.execute(
             'INSERT INTO users (user_id, username, first_name, last_name, role, balance, expired) VALUES (?, ?, ?, ?, "user", ?, ?)',
-                  (user.id, user.username, user.first_name, user.last_name, '0', '0'))
+                  (user.id, user.username, user.first_name, user.last_name, datetime.now().strftime('%d.%m.%Y %H:%M:%S'), '0'))
         conn.commit()
         logger.info(f"Пользователь {user.id} успешно зарегистрировался")
-        send_messages(context, user_ids, f"Пользователь {user.id} {user.username} {user.first_name} {user.last_name} успешно зарегистрировался. (Сообщение только администраторам)")
+        send_messages(context, user_ids, f"Пользователь {user.id} {user.username} {user.first_name} {user.last_name} присоединился к нашему боту!")
     except sqlite3.IntegrityError:
         pass
     finally:
@@ -242,14 +252,13 @@ def buy(query, update):
     rows = c.fetchall()
     if len(rows) < 3:
         keyboard = [
-            [InlineKeyboardButton("Пополнить на 10 ₽", callback_data='pay_request-10')],
-            [InlineKeyboardButton("Пополнить на 750 ₽", callback_data='pay_request-750')],
-            [InlineKeyboardButton("Пополнить на 4500 ₽", callback_data='pay_request-4500')],
+            [InlineKeyboardButton("На неделю (175 ₽)", callback_data='pay_request-175')],
+            [InlineKeyboardButton("На месяц (750 ₽)", callback_data='pay_request-750')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            f'Выберите сумму для пополнения:',
+            f'Выберите вариант подписки:',
             reply_markup=reply_markup
             )
     else:
@@ -269,6 +278,8 @@ def backtest_after_date_recieve(query, update, command):
     date = datetime(int(year), int(month), int(day))
     if date.strftime('%d.%m.%Y') == datetime.now().strftime('%d.%m.%Y'):
         today(query, update)
+    elif date.strftime('%d.%m.%Y') == (datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'):
+        next_day(query, update)
     elif date.strftime('%d.%m.%Y') > datetime.now().strftime('%d.%m.%Y'):
         msg = 'Функция бектеста позволяет посмотреть только историю. '
         'Прогнозы доступны для индивидуальных подписчиков.'
@@ -288,11 +299,37 @@ def backtest_after_date_recieve(query, update, command):
 
 def today(query, update):
     profile_list = registration_check(update.effective_user)
-    if profile_list[0] == 'subscriber':
+    if datetime.strptime(profile_list[1], '%d.%m.%Y %H:%M:%S') >= datetime.now():
         conn = sqlite3.connect('admin_django/astro_db.db')
         c = conn.cursor()
         c.execute('SELECT text FROM data WHERE date=?;',
                   (datetime.now().strftime('%d.%m.%Y'),))
+        msg = c.fetchone()
+        if msg is not None:
+            msg = msg[0]
+        else:
+            msg = 'На этот день прогноз еще не добавлен'
+        conn.close()
+        menu(query, msg)
+    else:
+        keyboard = [
+            [InlineKeyboardButton("💳 Перейти к оплате", callback_data='buy')],
+            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(
+            'Для просмотра актуального прогноза необходима активная подписка!',
+            reply_markup=reply_markup
+            )
+
+
+def next_day(query, update):
+    profile_list = registration_check(update.effective_user)
+    if datetime.strptime(profile_list[1], '%d.%m.%Y %H:%M:%S') >= datetime.now():
+        conn = sqlite3.connect('admin_django/astro_db.db')
+        c = conn.cursor()
+        c.execute('SELECT text FROM data WHERE date=?;',
+                  ((datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'),))
         msg = c.fetchone()
         if msg is not None:
             msg = msg[0]
@@ -343,8 +380,8 @@ def backtest_info(query):
     for msg in msg_points:
         msg_send += msg
         query.edit_message_text(msg_send, parse_mode='HTML')
-        time.sleep(3)
-    menu(query, msg_send)
+        time.sleep(2)
+    info_button(query, msg_send)
 
 
 def prognosis_info(query):
@@ -359,8 +396,8 @@ def prognosis_info(query):
     for msg in msg_points:
         msg_send += msg
         query.edit_message_text(msg_send, parse_mode='HTML')
-        time.sleep(3)
-    menu(query, msg_send)
+        time.sleep(2)
+    info_button(query, msg_send)
 
 
 def individual_info(query):
@@ -376,7 +413,7 @@ def individual_info(query):
         msg_send += msg + ' '
         query.edit_message_text(msg_send, parse_mode='HTML')
         time.sleep(0.1)
-    menu(query, msg_send)
+    info_button(query, msg_send)
 
 
 def pay_url_generate(value, payment_code, user_id):
@@ -465,10 +502,11 @@ def pay_check_target(query, update, label, value, payment_url):
                 'SELECT balance FROM users WHERE user_id=?;',
                 (profile_list[3],)
             )
+            value = value / 25
             old_value = c.fetchone()
-            old_value = old_value[0]
-            value = convert_to_int(value) + convert_to_int(old_value)
-            c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value, profile_list[3],))
+            old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
+            value = old_value + timedelta(days=value)
+            c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
             c.close()
             conn.commit()
             keyboard = [
@@ -535,32 +573,6 @@ def convert_to_int(value):
     return value
 
 
-def script(update, context):
-    update.message.reply_text("Привет! Пожалуйста, введите скрипт для применения к базе данных:")
-    context.user_data['waiting_for_script'] = True
-
-
-def apply_script(update, context):
-    if 'waiting_for_script' in context.user_data and context.user_data['waiting_for_script']:
-        profile_list = registration_check(update.effective_user)
-        if profile_list[0] == 'admin':
-            script = update.message.text
-            if script == 'Обновление':
-                update.message.reply_text(f"Загрузил новое обновление - изменено инфо, исправлены переменные контекста, тест подписки внутри ЛК для админа")
-            else:
-                conn = sqlite3.connect('admin_django/astro_db.db')
-                c = conn.cursor()
-                c.execute(script)
-                conn.commit()
-                conn.close()
-                update.message.reply_text(f"Скрипт применен к базе данных:\n{script}")
-        else:
-            update.message.reply_text("Скрипт не выполнен, Вы не админ.")
-        del context.user_data['waiting_for_script']
-    else:
-        update.message.reply_text("Для общения с ботом используйте только кнопки меню.")
-
-
 def send_messages(context, user_ids, text):
     bot = context.bot
     for user_id in user_ids:
@@ -575,12 +587,6 @@ def error(update, context):
     print(f'Ошибка! - {context.error}. Qerry для прочтения - {update}')
 
 
-async def post_init(updater):
-    await updater.bot.set_my_commands([
-        BotCommand("/start", "Вызов меню"),
-    ])
-
-
 def main():
     load_dotenv()
     BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -589,17 +595,10 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(commands))
-    dp.add_handler(CommandHandler("script", script))
-    dp.add_handler(MessageHandler(
-        Filters.text & ~Filters.command,
-        apply_script
-        )
-    )
     dp.add_error_handler(error)
 
     updater.start_polling()
     updater.idle()
-    updater.loop.create_task(post_init(updater))
 
 
 if __name__ == '__main__':
@@ -610,7 +609,11 @@ if __name__ == '__main__':
         level=logging.INFO
     )
     file_handler = logging.FileHandler('bot.log', 'a', 'utf-8')
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    file_handler.setFormatter(
+        logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+    )
     logging.getLogger().addHandler(file_handler)
     logger = logging.getLogger(__name__)
     user_ids = [605381950, 2038870658]
