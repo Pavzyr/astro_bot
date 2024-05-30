@@ -252,8 +252,7 @@ def buy(query, update):
     rows = c.fetchall()
     if len(rows) < 3:
         keyboard = [
-            [InlineKeyboardButton("На неделю (175 ₽)", callback_data='pay_request-175')],
-            [InlineKeyboardButton("На месяц (750 ₽)", callback_data='pay_request-750')],
+            [InlineKeyboardButton("Тестовые 2 недели (25 ₽)", callback_data='pay_request-25')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -502,7 +501,8 @@ def pay_check_target(query, context, update, label, value, payment_url):
                 'SELECT balance FROM users WHERE user_id=?;',
                 (profile_list[3],)
             )
-            value = convert_to_int(value) / 25
+            # value = convert_to_int(value) / 25
+            value = 14
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
             value = old_value + timedelta(days=value)
