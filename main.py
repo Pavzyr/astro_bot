@@ -89,7 +89,7 @@ def commands(update: Update, context: CallbackContext):
         value = payment_url[1]
         payment_url = payment_url[0]
         conn.close()
-        pay_check_target(query, update, command, value, payment_url)
+        pay_check_target(query, context, update, command, value, payment_url)
     elif command.startswith("calendar-day-"):
         backtest_after_date_recieve(query, update, command)
     elif command.startswith("change-month-"):
@@ -487,7 +487,7 @@ def pay_check(query, update):
             )
 
 
-def pay_check_target(query, update, label, value, payment_url):
+def pay_check_target(query, context, update, label, value, payment_url):
     profile_list = registration_check(update.effective_user)
     pay_list = label.split('||')
     conn = sqlite3.connect('admin_django/astro_db.db')
@@ -509,6 +509,7 @@ def pay_check_target(query, update, label, value, payment_url):
             c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
             c.close()
             conn.commit()
+            send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку на {value} дней!")
             keyboard = [
                     [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
                     [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
