@@ -502,6 +502,7 @@ def pay_check_target(query, context, update, label, value, payment_url):
                 (profile_list[3],)
             )
             # value = convert_to_int(value) / 25
+            send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку за {value} ₽ до {value}!")
             value = 14
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
@@ -509,7 +510,6 @@ def pay_check_target(query, context, update, label, value, payment_url):
             c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
             c.close()
             conn.commit()
-            send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку на {value} дней!")
             keyboard = [
                     [InlineKeyboardButton("🆔 Профиль", callback_data='profile')],
                     [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
