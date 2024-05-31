@@ -8,7 +8,7 @@ load_dotenv(dotenv_path)
 
 SECRET_KEY = os.getenv("DJANGO_TOKEN")
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
