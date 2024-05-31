@@ -22,3 +22,4 @@ jobs:
       run: |
         rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ root@79.137.206.158:/home/astro_bot/
         ssh -o StrictHostKeyChecking=no root@79.137.206.158 "sudo systemctl restart my_telegram_bot.service"
+        ssh -o StrictHostKeyChecking=no root@79.137.206.158 "sudo systemctl restart gunicorn"
