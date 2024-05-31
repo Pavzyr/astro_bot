@@ -23,3 +23,18 @@ jobs:
         rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ root@79.137.206.158:/home/astro_bot/
         ssh -o StrictHostKeyChecking=no root@79.137.206.158 "sudo systemctl restart my_telegram_bot.service"
         ssh -o StrictHostKeyChecking=no root@79.137.206.158 "sudo systemctl restart gunicorn"
+
+  send_message:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Send message
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            В ${{ github.repository }}
+            ${{ github.actor }} запушил с коммитом
+            "${{ github.event.commits[0].message }}"
+            Деплой ASTRO TRADE успешно выполнен!
