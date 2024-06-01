@@ -31,6 +31,7 @@ def start(update: Update, context: CallbackContext, msg_ex=False):
             [InlineKeyboardButton("📅 Прогноз на завтра", callback_data='next_day')],
             [InlineKeyboardButton("🆔 Ваш Профиль", callback_data='profile')],
             [InlineKeyboardButton("❓ Информация", callback_data='info')],
+            [InlineKeyboardButton("🆘 Обратная связь", url='https://t.me/astro_trade_help_bot')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         if msg_ex:
@@ -502,7 +503,7 @@ def pay_check_target(query, context, update, label, value, payment_url):
                 (profile_list[3],)
             )
             # value = convert_to_int(value) / 25
-            send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку за {value} ₽ до {value}!")
+            send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку за {value} ₽!")
             value = 14
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
