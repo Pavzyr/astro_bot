@@ -280,9 +280,9 @@ def backtest_after_date_recieve(query, update, command):
         today(query, update)
     elif date.strftime('%d.%m.%Y') == (datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'):
         next_day(query, update)
-    elif date.strftime('%d.%m.%Y') > datetime.now().strftime('%d.%m.%Y'):
-        msg = 'Функция бектеста позволяет посмотреть только историю. '
-        'Прогнозы доступны для индивидуальных подписчиков.'
+    elif date > datetime.now():
+        logger.info(f"Запрошенная дата {date.strftime('%d.%m.%Y')} текущая {datetime.now().strftime('%d.%m.%Y')}")
+        msg = 'Функция бектеста позволяет посмотреть только историю. Прогнозы доступны для индивидуальных подписчиков.'
         menu(query, msg)
     else:
         conn = sqlite3.connect('admin_django/astro_db.db')
