@@ -108,6 +108,14 @@ def menu(update, msg):
     update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
 
 
+def back_to_test(update, msg):
+    keyboard = [
+        [InlineKeyboardButton("↩️ Назад", callback_data='backtest')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
+
+
 def info_button(update, msg):
     keyboard = [
         [InlineKeyboardButton("↩️ Назад в инфо", callback_data='info')],
@@ -276,25 +284,28 @@ def buy(query, update):
 def backtest_after_date_recieve(query, update, command):
     da, _, year, month, day = command.split('-')[:5]
     date = datetime(int(year), int(month), int(day))
-    if date.strftime('%d.%m.%Y') == datetime.now().strftime('%d.%m.%Y'):
-        today(query, update)
-    elif date.strftime('%d.%m.%Y') == (datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'):
-        next_day(query, update)
-    elif date > datetime.now():
-        logger.info(f"Запрошенная дата {date.strftime('%d.%m.%Y')} текущая {datetime.now().strftime('%d.%m.%Y')}")
-        msg = 'Функция бектеста позволяет посмотреть только историю. Прогнозы доступны для индивидуальных подписчиков.'
-        menu(query, msg)
+    if date.weekday() in (5, 6):
+        back_to_test(query, 'Прогнозы публикуются только на рабочие дни.')
     else:
-        conn = sqlite3.connect('admin_django/astro_db.db')
-        c = conn.cursor()
-        c.execute('SELECT text FROM data WHERE date=?;', (date.strftime('%d.%m.%Y'),))
-        msg = c.fetchone()
-        if msg is not None:
-            msg = msg[0] 
+        if date.strftime('%d.%m.%Y') == datetime.now().strftime('%d.%m.%Y'):
+            today(query, update)
+        elif date.strftime('%d.%m.%Y') == (datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'):
+            next_day(query, update)
+        elif date > datetime.now():
+            logger.info(f"Запрошенная дата {date.strftime('%d.%m.%Y')} текущая {datetime.now().strftime('%d.%m.%Y')}")
+            msg = 'Функция бектеста позволяет посмотреть только историю. Прогнозы доступны для индивидуальных подписчиков.'
+            back_to_test(query, msg)
         else:
-            msg = 'На эту дату у нас нет прогноза.'
-        conn.close()
-        menu(query, msg)
+            conn = sqlite3.connect('admin_django/astro_db.db')
+            c = conn.cursor()
+            c.execute('SELECT text FROM data WHERE date=?;', (date.strftime('%d.%m.%Y'),))
+            msg = c.fetchone()
+            if msg is not None:
+                msg = msg[0] 
+            else:
+                msg = 'На эту дату у нас нет прогноза.'
+            conn.close()
+            back_to_test(query, msg)
 
 
 def today(query, update):
@@ -318,7 +329,7 @@ def today(query, update):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            'Для просмотра актуального прогноза необходима активная подписка!',
+            'Для просмотра актуального прогноза необходима активная подписка! Обратите внимание, что прогнозы публикуются только на рабочие дни.',
             reply_markup=reply_markup
             )
 
@@ -344,7 +355,7 @@ def next_day(query, update):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(
-            'Для просмотра актуального прогноза необходима активная подписка!',
+            'Для просмотра актуального прогноза необходима активная подписка! Обратите внимание, что прогнозы публикуются только на рабочие дни.',
             reply_markup=reply_markup
             )
 
