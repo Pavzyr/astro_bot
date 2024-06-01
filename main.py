@@ -141,30 +141,40 @@ def create_calendar(year=None, month=None):
         year = datetime.now().year
     if month is None:
         month = datetime.now().month
+
     keyboard = []
+    # Заголовок с названием месяца и года
     row = [
         InlineKeyboardButton(
             f"{calendar.month_name[month]} {year}",
             callback_data="ignore"
-            ),
-        ]
+        ),
+    ]
     keyboard.append(row)
+
+    # Заголовки дней недели с понедельника по пятницу (Пропуск субботы и воскресенья)
     row = []
-    for day in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]:
+    for day in ["Пн", "Вт", "Ср", "Чт", "Пт"]:
         row.append(InlineKeyboardButton(day, callback_data="ignore"))
     keyboard.append(row)
+
+    # Календарные дни, пропускаем субботу и воскресенье
     month_calendar = calendar.monthcalendar(year, month)
     for week in month_calendar:
         row = []
-        for day in week:
+        for i, day in enumerate(week):
+            if i >= 5:  # Пропускаем субботу (i=5) и воскресенье (i=6)
+                continue
             if day == 0:
                 row.append(InlineKeyboardButton(" ", callback_data="ignore"))
             else:
                 row.append(InlineKeyboardButton(
                     str(day),
                     callback_data=f"calendar-day-{year}-{month}-{day}"
-                    ))
+                ))
         keyboard.append(row)
+
+    # Строка с кнопками для переключения месяца
     row = []
     previous_month = month - 1 if month > 1 else 12
     previous_year = year if month > 1 else year - 1
@@ -173,17 +183,20 @@ def create_calendar(year=None, month=None):
     row.append(InlineKeyboardButton(
         "<- Пред. месяц",
         callback_data=f"change-month-{previous_year}-{previous_month}"
-        ))
+    ))
     row.append(InlineKeyboardButton(
         "След. месяц ->",
         callback_data=f"change-month-{next_year}-{next_month}"
-        ))
+    ))
     keyboard.append(row)
+
+    # Кнопка для возврата в меню
     row = []
     row.append(InlineKeyboardButton(
         "↩️ Назад в меню", callback_data='menu'
-        ))
+    ))
     keyboard.append(row)
+
     return InlineKeyboardMarkup(keyboard)
 
 
