@@ -274,7 +274,7 @@ def buy(query, update):
     rows = c.fetchall()
     if len(rows) < 3:
         keyboard = [
-            [InlineKeyboardButton("Тестовые 2 недели (25 ₽)", callback_data='pay_request-25')],
+            [InlineKeyboardButton("Тест до 15.06.2024 (25 ₽)", callback_data='pay_request-25')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -532,7 +532,8 @@ def pay_check_target(query, context, update, label, value, payment_url):
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
             value = old_value + timedelta(days=value)
-            c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
+            c.execute('UPDATE users SET balance=? WHERE user_id=?;', ('15.06.2024 23:59:59', profile_list[3],))
+            # c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
             c.close()
             conn.commit()
             keyboard = [
