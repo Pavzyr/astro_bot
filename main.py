@@ -399,13 +399,14 @@ def backtest_info(query):
     msg = c.fetchone()
     msg = msg[0]
     conn.close()
-    msg_points = msg.split('.')
-    msg_send = ''
-    for msg in msg_points:
-        msg_send += msg
-        query.edit_message_text(msg_send, parse_mode='HTML')
-        time.sleep(2)
-    info_button(query, msg_send)
+    info_button(query, msg)
+    # msg_points = msg.split('.')
+    # msg_send = ''
+    # for msg in msg_points:
+    #     msg_send += msg
+    #     query.edit_message_text(msg_send, parse_mode='HTML')
+    #     time.sleep(2)
+    # info_button(query, msg_send)
 
 
 def prognosis_info(query):
@@ -415,13 +416,14 @@ def prognosis_info(query):
     msg = c.fetchone()
     msg = msg[0]
     conn.close()
-    msg_points = msg.split('.')
-    msg_send = ''
-    for msg in msg_points:
-        msg_send += msg
-        query.edit_message_text(msg_send, parse_mode='HTML')
-        time.sleep(2)
-    info_button(query, msg_send)
+    info_button(query, msg)
+    # msg_points = msg.split('.')
+    # msg_send = ''
+    # for msg in msg_points:
+    #     msg_send += msg
+    #     query.edit_message_text(msg_send, parse_mode='HTML')
+    #     time.sleep(2)
+    # info_button(query, msg_send)
 
 
 def individual_info(query):
