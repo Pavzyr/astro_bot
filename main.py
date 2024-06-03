@@ -27,7 +27,7 @@ def start(update: Update, context: CallbackContext, msg_ex=False):
     if profile_list[0] in ('user', 'admin'):
         keyboard = [
             [InlineKeyboardButton("🆓 Бектест (в прошлое)", callback_data='backtest')],
-            [InlineKeyboardButton("📆 Прогноз на сегодня", callback_data='today')],
+            [InlineKeyboardButton("🗓️ Прогноз на сегодня", callback_data='today')],
             [InlineKeyboardButton("🗓️ Прогноз на завтра", callback_data='next_day')],
             [InlineKeyboardButton("🆔 Ваш Профиль", callback_data='profile')],
             [InlineKeyboardButton("❓ Информация", callback_data='info')],
