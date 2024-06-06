@@ -51,13 +51,7 @@ def commands(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     command = query.data
-    if command == "backtest_info":
-        backtest_info(query)
-    elif command == "prognosis_info":
-        prognosis_info(query)
-    elif command == "individual_info":
-        individual_info(query)
-    elif command == "backtest":
+    if command == "backtest":
         query.edit_message_text("Выберире дату:", reply_markup=create_calendar())
     elif command == "buy":
         buy(query, update)
@@ -102,24 +96,25 @@ def commands(update: Update, context: CallbackContext):
 
 def menu(update, msg):
     keyboard = [
-        [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+        [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
+    update.edit_message_text(text=msg, reply_markup=reply_markup, parse_mode='HTML', disable_web_page_preview=True)
+
+
+def info(query):
+    conn = sqlite3.connect('admin_django/astro_db.db')
+    c = conn.cursor()
+    c.execute('SELECT "page_text" FROM "info" WHERE page_name="info";')
+    msg = c.fetchone()
+    msg = msg[0]
+    conn.close()
+    menu(query, msg)
 
 
 def back_to_test(update, msg):
     keyboard = [
         [InlineKeyboardButton("↩️ Назад", callback_data='backtest')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
-
-
-def info_button(update, msg):
-    keyboard = [
-        [InlineKeyboardButton("↩️ Назад в инфо", callback_data='info')],
-        [InlineKeyboardButton("Ⓜ️ В главное меню", callback_data='menu')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
@@ -371,75 +366,6 @@ def next_day(query, update):
             'Для просмотра актуального прогноза необходима активная подписка! Обратите внимание, что прогнозы публикуются только на рабочие дни.',
             reply_markup=reply_markup
             )
-
-
-def info(query):
-    conn = sqlite3.connect('admin_django/astro_db.db')
-    c = conn.cursor()
-    c.execute('SELECT "page_text" FROM "info" WHERE page_name="info";')
-    msg = c.fetchone()
-    msg = msg[0]
-    conn.close()
-    keyboard = [
-            [
-                InlineKeyboardButton("Бектест", callback_data='backtest_info'),
-                InlineKeyboardButton("Актуальный прогноз", callback_data='prognosis_info')
-            ],
-            [InlineKeyboardButton("Индивидуальный прогноз", callback_data='individual_info')],
-            [InlineKeyboardButton("↩️ В меню", callback_data='menu')],
-        ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(msg, reply_markup=reply_markup, parse_mode='HTML')
-
-
-def backtest_info(query):
-    conn = sqlite3.connect('admin_django/astro_db.db')
-    c = conn.cursor()
-    c.execute('SELECT "page_text" FROM "info" WHERE page_name="backtest";')
-    msg = c.fetchone()
-    msg = msg[0]
-    conn.close()
-    info_button(query, msg)
-    # msg_points = msg.split('.')
-    # msg_send = ''
-    # for msg in msg_points:
-    #     msg_send += msg
-    #     query.edit_message_text(msg_send, parse_mode='HTML')
-    #     time.sleep(2)
-    # info_button(query, msg_send)
-
-
-def prognosis_info(query):
-    conn = sqlite3.connect('admin_django/astro_db.db')
-    c = conn.cursor()
-    c.execute('SELECT "page_text" FROM "info" WHERE page_name="prognosis";')
-    msg = c.fetchone()
-    msg = msg[0]
-    conn.close()
-    info_button(query, msg)
-    # msg_points = msg.split('.')
-    # msg_send = ''
-    # for msg in msg_points:
-    #     msg_send += msg
-    #     query.edit_message_text(msg_send, parse_mode='HTML')
-    #     time.sleep(2)
-    # info_button(query, msg_send)
-
-
-def individual_info(query):
-    conn = sqlite3.connect('admin_django/astro_db.db')
-    c = conn.cursor()
-    c.execute('SELECT "page_text" FROM "info" WHERE page_name="individual";')
-    msg = c.fetchone()
-    msg = msg[0]
-    conn.close()
-    msg_points = msg.split(' ')
-    msg_send = ''
-    for msg in msg_points:
-        msg_send += msg + ' '
-        query.edit_message_text(msg_send, parse_mode='HTML')
-        time.sleep(0.1)
-    info_button(query, msg_send)
 
 
 def pay_url_generate(value, payment_code, user_id):
