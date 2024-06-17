@@ -18,14 +18,11 @@ from telegram.ext import (
 )
 
 
-WAITING_FOR_INPUT = range(1)
-
 def start(update: Update, context: CallbackContext, msg_ex=False):
     if msg_ex:
         profile_list = registration_check(update.from_user)
     else:
         profile_list = registration_check(update.effective_user)
-
     if profile_list[0] in ('user', 'admin'):
         keyboard = [
             [InlineKeyboardButton("🆓 Бектест (в прошлое)", callback_data='backtest')],
