@@ -7,6 +7,12 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 .\.venv\Scripts\activate
 
 sudo systemctl restart my_telegram_bot.service
+sudo systemctl restart gunicorn.service
+sudo systemctl restart support_bot.service
+sudo systemctl restart slavik_bot.service
+
+sudo systemctl status slavik_bot.service
+
 
 sudo systemctl start my_telegram_bot.service
 sudo systemctl start support_bot.service

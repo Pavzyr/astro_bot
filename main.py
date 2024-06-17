@@ -18,6 +18,8 @@ from telegram.ext import (
 )
 
 
+WAITING_FOR_INPUT = range(1)
+
 def start(update: Update, context: CallbackContext, msg_ex=False):
     if msg_ex:
         profile_list = registration_check(update.from_user)
@@ -29,6 +31,7 @@ def start(update: Update, context: CallbackContext, msg_ex=False):
             [InlineKeyboardButton("🆓 Бектест (в прошлое)", callback_data='backtest')],
             [InlineKeyboardButton("🗓️ Прогноз на сегодня", callback_data='today')],
             [InlineKeyboardButton("🗓️ Прогноз на завтра", callback_data='next_day')],
+            [InlineKeyboardButton("💎 Индивидуальный прогноз", callback_data='individual')],
             [InlineKeyboardButton("🆔 Ваш Профиль", callback_data='profile')],
             [InlineKeyboardButton("❓ Информация", callback_data='info')],
             [InlineKeyboardButton("🆘 Обратная связь", url='https://t.me/astro_trade_help_bot')],
@@ -55,6 +58,10 @@ def commands(update: Update, context: CallbackContext):
         query.edit_message_text("Выберире дату:", reply_markup=create_calendar())
     elif command == "buy":
         buy(query, update)
+    elif command == "individual":
+        individual(query, update)
+    elif command == "input_profile_data":
+        menu(query, 'В разработке, скоро будет доступно!')
     elif command == "today":
         today(query, update)
     elif command == "next_day":
@@ -123,10 +130,10 @@ def back_to_test(update, msg):
 def registration_check(user):
     conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
-    c.execute('SELECT role, balance, expired, user_id FROM users WHERE user_id=?;', (user.id,))
+    c.execute('SELECT role, balance, expired, user_id, age, adress FROM users WHERE user_id=?;', (user.id,))
     role = c.fetchone()
     if role is not None:
-        return [role[0], role[1], role[2], role[3]]
+        return [role[0], role[1], role[2], role[3], role[4], role[5]]
     else:
         return ['unauthorized']
 
@@ -207,29 +214,29 @@ def page_of_calendar(command, query):
 def profile(query, update):
     profile_list = registration_check(update.effective_user)
     if profile_list[0] == 'user':
-        keyboard = [
-            [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
-            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
-            [InlineKeyboardButton("🔎 Проверить оплату", callback_data='pay_check')],
-            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_text(
-            f'👤 Ваш ID - {profile_list[3]} (пользователь) \n💰 Подписка до - {profile_list[1]}.',
-            reply_markup=reply_markup
-            )
-    elif profile_list[0] == 'admin':
-        keyboard = [
-            [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
-            [InlineKeyboardButton("🆓 Бектест", callback_data='backtest')],
-            [InlineKeyboardButton("🔎 Проверить оплату", callback_data='pay_check')],
-            [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_text(
-            f'👤 Ваш ID - {profile_list[3]} (Администратор) \n💰 Подписка до - {profile_list[1]}.',
-            reply_markup=reply_markup
-            )
+        if profile_list[4] is None:
+            keyboard = [
+                [InlineKeyboardButton("👤 Заполнить профиль", callback_data='input_profile_data')],
+                [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
+                [InlineKeyboardButton("🔎 Проверить оплату", callback_data='pay_check')],
+                [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            query.edit_message_text(
+                f'👤 Ваш ID - {profile_list[3]} (пользователь) \nДанные для индивидуального прогноза не заполнены.\n💰 Подписка до - {profile_list[1]}.',
+                reply_markup=reply_markup
+                )
+        else:
+            keyboard = [
+                [InlineKeyboardButton("💳 Оплатить подписку", callback_data='buy')],
+                [InlineKeyboardButton("🔎 Проверить оплату", callback_data='pay_check')],
+                [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            query.edit_message_text(
+                f'👤 Ваш ID - {profile_list[3]} (пользователь) \nДата рождения - {profile_list[4]}\nМесто рождения - {profile_list[5]}\n💰 Подписка до - {profile_list[1]}.',
+                reply_markup=reply_markup
+                )
     else:
         keyboard = [
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
@@ -269,7 +276,7 @@ def buy(query, update):
     rows = c.fetchall()
     if len(rows) < 3:
         keyboard = [
-            [InlineKeyboardButton("Тест до 15.06.2024 (25 ₽)", callback_data='pay_request-25')],
+            [InlineKeyboardButton("Доступ к общему прогнозу на месяц (800 ₽)", callback_data='pay_request-800')],
             [InlineKeyboardButton("↩️ Назад в меню", callback_data='menu')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -347,13 +354,15 @@ def next_day(query, update):
     if datetime.strptime(profile_list[1], '%d.%m.%Y %H:%M:%S') >= datetime.now():
         conn = sqlite3.connect('admin_django/astro_db.db')
         c = conn.cursor()
-        c.execute('SELECT text FROM data WHERE date=?;',
-                  ((datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'),))
+        c.execute(
+            'SELECT text FROM data WHERE date=?;',
+            ((datetime.now() + timedelta(days=1)).strftime('%d.%m.%Y'),)
+        )
         msg = c.fetchone()
         if msg is not None:
             msg = msg[0]
         else:
-            msg = 'На этот день прогноз еще не добавлен'
+            msg = 'Прогноз выпускается только по рабочим дням недели.'
         conn.close()
         menu(query, msg)
     else:
@@ -368,15 +377,19 @@ def next_day(query, update):
             )
 
 
+def individual(query, update):
+    menu(query, 'В разработке, скоро будет доступно!')
+
+
 def pay_url_generate(value, payment_code, user_id):
     quickpay = Quickpay(
             receiver="4100118665757287",
             quickpay_form="shop",
-            targets=f"Пополнение кошелька Астро Trade прогноз на {value} ₽",
+            targets=f"Пополнение кошелька АстроTraders прогноз на {value} ₽",
             paymentType="SB",
             sum=value,
             label=payment_code,
-            successURL="https://web.telegram.org/k/#@Astropredikt_bot"
+            successURL="https://t.me/AstroTraders_bot"
             )
     conn = sqlite3.connect('admin_django/astro_db.db')
     c = conn.cursor()
@@ -456,12 +469,11 @@ def pay_check_target(query, context, update, label, value, payment_url):
             )
             # value = convert_to_int(value) / 25
             send_messages(context, user_ids, f"Пользователь {profile_list[3]} оплатил подписку за {value} ₽!")
-            value = 14
+            value = 30
             old_value = c.fetchone()
             old_value = datetime.strptime(old_value[0], '%d.%m.%Y %H:%M:%S')
             value = old_value + timedelta(days=value)
-            c.execute('UPDATE users SET balance=? WHERE user_id=?;', ('15.06.2024 23:59:59', profile_list[3],))
-            # c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
+            c.execute('UPDATE users SET balance=? WHERE user_id=?;', (value.strftime('%d.%m.%Y %H:%M:%S'), profile_list[3],))
             c.close()
             conn.commit()
             keyboard = [
@@ -547,7 +559,6 @@ def main():
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     updater = Updater(BOT_TOKEN, use_context=True)
     dp = updater.dispatcher
-
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(commands))
     dp.add_error_handler(error)
