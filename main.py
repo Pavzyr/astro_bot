@@ -374,7 +374,7 @@ def next_day(query, update):
             )
 
 
-def individual(query, update):
+def individual(query):
     menu(query, 'В разработке, скоро будет доступно!')
 
 
