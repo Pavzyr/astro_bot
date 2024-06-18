@@ -532,7 +532,7 @@ def convert_to_int(value):
         try:
             return int(value)
         except ValueError:
-            print(f"Невозможно преобразовать '{value}' в int.")
+            print(f"Невозможно преобразовать '{value}' в int")
             return None
     return value
 
